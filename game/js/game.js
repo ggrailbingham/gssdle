@@ -16,10 +16,10 @@ const State = {
 };
 
 // ── LAYOUT CONSTANTS ──────────────────────────────────────────────────────────
-const CARD_SIZE = 110;  // square card px
-const SPACING   = 160;  // px between card centers
-const TRACK_Y   = 200;  // px from canvas top to track line
-const STEM_H    = 20;   // stem height px
+const CARD_SIZE = 150;  // square card px
+const SPACING   = 180;  // px between card centers
+const TRACK_Y   = 260;  // px from canvas top to track line
+const STEM_H    = 24;   // stem height px
 
 // ── SEEDED RANDOM (same date = same shuffle for all players) ──────────────────
 function seededRandom(seed) {
