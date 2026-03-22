@@ -1,4 +1,4 @@
-// game.js — GSSdle v7
+// game.js — GSSdle v8
 
 const State = {
   allCards:    [],
@@ -16,56 +16,62 @@ const State = {
 };
 
 // ── LAYOUT CONSTANTS ──────────────────────────────────────────────────────────
-const CARD_SIZE   = 110;  // square card px
-const SPACING     = 160;  // px between card centers
-const TRACK_Y     = 200;  // px from canvas top to track line
-const STEM_H      = 20;   // stem height px
+const CARD_SIZE = 110;  // square card px
+const SPACING   = 160;  // px between card centers
+const TRACK_Y   = 200;  // px from canvas top to track line
+const STEM_H    = 20;   // stem height px
 
-// ── SINGLE SOURCE OF TRUTH FOR POSITIONS ─────────────────────────────────────
-// Returns {sorted, positions, canvasWidth, scrollTarget}
-// sorted    = placed cards sorted by pct
-// positions = x pixel center of each card in canvas coords
-// canvasWidth = total canvas width
-// scrollTarget = scrollLeft value to center the newest card
+// ── SEEDED RANDOM (same date = same shuffle for all players) ──────────────────
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+function getDailySeed() {
+  // Seed based on Pacific date — resets at midnight Pacific
+  const pac = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  return pac.getFullYear() * 10000 + (pac.getMonth() + 1) * 100 + pac.getDate();
+}
+
+function shuffleWithSeed(arr, seed) {
+  const a   = [...arr];
+  const rng = seededRandom(seed);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── LAYOUT ────────────────────────────────────────────────────────────────────
+// Single source of truth for card positions.
+// Newest placed card is always centered in the viewport.
+// All other cards are spaced SPACING apart on either side by sorted order.
 function layout() {
   const wrap = document.getElementById('timeline-scroll-wrap');
   const vw   = wrap ? wrap.clientWidth : window.innerWidth;
 
   if (State.placed.length === 0) {
-    return { sorted:[], positions:[], canvasWidth: vw, scrollTarget: 0 };
+    return { sorted: [], positions: [], canvasWidth: vw, scrollTarget: 0 };
   }
 
-  // Sort placed by pct
-  const sorted = [...State.placed].sort((a,b) => a.card.pct - b.card.pct);
-
-  // Most recently placed card
-  const newest   = State.placed[State.placed.length - 1];
+  const sorted    = [...State.placed].sort((a, b) => a.card.pct - b.card.pct);
+  const newest    = State.placed[State.placed.length - 1];
   const newestIdx = sorted.findIndex(e => e.card.id === newest.card.id);
 
-  // Newest card goes at center of viewport
-  // Other cards are spaced SPACING apart from it
-  const positions = sorted.map((_, i) => {
-    const offset = i - newestIdx;
-    return vw / 2 + offset * SPACING;
-  });
+  const positions = sorted.map((_, i) => vw / 2 + (i - newestIdx) * SPACING);
 
-  // Canvas must be wide enough to show all cards with padding
-  const minX     = Math.min(...positions) - SPACING;
-  const maxX     = Math.max(...positions) + SPACING;
-  const canvasWidth = Math.max(vw, maxX - minX + CARD_SIZE);
+  const minX        = Math.min(...positions) - SPACING;
+  const maxX        = Math.max(...positions) + SPACING;
+  const shift       = minX < SPACING ? SPACING - minX : 0;
+  const shifted     = positions.map(p => p + shift);
+  const canvasWidth = Math.max(vw, maxX + shift + SPACING);
+  const scrollTarget= shift;
 
-  // If cards go left of 0 in viewport coords, we need to shift everything right
-  // and scroll to compensate
-  const shift = minX < SPACING ? SPACING - minX : 0;
-  const shiftedPositions = positions.map(p => p + shift);
-  const scrollTarget     = shift; // scrollLeft to bring viewport center back to newest card
-
-  return {
-    sorted,
-    positions: shiftedPositions,
-    canvasWidth: Math.max(vw, maxX + shift + SPACING),
-    scrollTarget,
-  };
+  return { sorted, positions: shifted, canvasWidth, scrollTarget };
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
@@ -89,16 +95,21 @@ function setupTodayCards() {
   } else {
     State.todayCards = pickRandom(State.allCards, 8, 2.0);
   }
-  State.todayCards = [...State.todayCards].sort((a,b) => a.pct - b.pct);
 
-  // Pre-place first card (free, no points)
+  // Sort by pct — establishes correct ordering for placement logic
+  State.todayCards = [...State.todayCards].sort((a, b) => a.pct - b.pct);
+
+  // Shuffle presentation order using daily seed — same for all players each day
+  State.todayCards = shuffleWithSeed(State.todayCards, getDailySeed());
+
+  // Pre-place first card (free — no points)
   State.placed.push({ card: State.todayCards[0], pointsEarned: 0, wrongAttempts: 0 });
   State.currentIndex = 1;
 }
 
 function pickRandom(cards, n, minGap) {
   const shuffled = [...cards].sort(() => Math.random() - 0.5);
-  const picked = [];
+  const picked   = [];
   for (const c of shuffled) {
     if (picked.length >= n) break;
     if (picked.every(p => Math.abs(p.pct - c.pct) >= minGap)) picked.push(c);
@@ -107,29 +118,22 @@ function pickRandom(cards, n, minGap) {
 }
 
 // ── CONVERT clientX TO RELATIVE PCT ──────────────────────────────────────────
-// Uses canvas-relative x to figure out where the drop falls between placed cards
 function clientXtoRelativePct(clientX) {
   const inner = document.getElementById('tl-inner');
   if (!inner) return 50;
-  const rect = inner.getBoundingClientRect();
-  const canvasX = clientX - rect.left; // x in canvas coordinates
+  const rect    = inner.getBoundingClientRect();
+  const canvasX = clientX - rect.left;
 
   const { sorted, positions } = layout();
   if (sorted.length === 0) return 50;
 
-  // Before first card → less than first card's pct
-  if (canvasX < positions[0]) {
-    return sorted[0].card.pct - 1;
-  }
-  // After last card → more than last card's pct
-  if (canvasX > positions[positions.length - 1]) {
-    return sorted[sorted.length - 1].card.pct + 1;
-  }
-  // Between two cards → interpolate
+  if (canvasX < positions[0])                    return sorted[0].card.pct - 1;
+  if (canvasX > positions[positions.length - 1]) return sorted[sorted.length - 1].card.pct + 1;
+
   for (let i = 0; i < positions.length - 1; i++) {
-    if (canvasX >= positions[i] && canvasX <= positions[i+1]) {
-      const t = (canvasX - positions[i]) / (positions[i+1] - positions[i]);
-      return sorted[i].card.pct + t * (sorted[i+1].card.pct - sorted[i].card.pct);
+    if (canvasX >= positions[i] && canvasX <= positions[i + 1]) {
+      const t = (canvasX - positions[i]) / (positions[i + 1] - positions[i]);
+      return sorted[i].card.pct + t * (sorted[i + 1].card.pct - sorted[i].card.pct);
     }
   }
   return 50;
@@ -172,7 +176,9 @@ function renderGame() {
             <div class="scard incoming-card" id="incoming-card" draggable="true">
               <div class="scard-decade">${current.decade}</div>
               <div class="scard-question">${current.question}</div>
-              ${State.attempts > 0 ? `<div class="wrong-marks">${'<span class="x-mark">✕</span>'.repeat(Math.min(State.attempts,8))}</div>` : ''}
+              ${State.attempts > 0
+                ? `<div class="wrong-marks">${'<span class="x-mark">✕</span>'.repeat(Math.min(State.attempts,8))}</div>`
+                : ''}
             </div>
           </div>
           <div class="incoming-label">CARD ${State.currentIndex + 1} OF ${State.todayCards.length}</div>
@@ -184,13 +190,9 @@ function renderGame() {
 
   setupInteraction();
 
-  // Scroll to center the newest card
   requestAnimationFrame(() => {
     const wrap = document.getElementById('timeline-scroll-wrap');
-    if (wrap) {
-      const { scrollTarget } = layout();
-      wrap.scrollLeft = scrollTarget;
-    }
+    if (wrap) { const { scrollTarget } = layout(); wrap.scrollLeft = scrollTarget; }
   });
 }
 
@@ -206,33 +208,33 @@ function renderTimeline() {
         <div class="tl-track" style="top:${TRACK_Y}px"></div>
         <div class="tl-axis-label" style="top:${TRACK_Y+14}px;left:60px">← LESS COMMON</div>
         <div class="tl-axis-label" style="top:${TRACK_Y+14}px;right:60px;text-align:right">MORE COMMON →</div>
-        <div class="drop-overlay" id="drop-overlay" style="width:${vw}px;height:${canvasH}px;display:none;cursor:crosshair"></div>
+        <div class="drop-overlay" id="drop-overlay"
+             style="width:${vw}px;height:${canvasH}px;display:none;cursor:crosshair"></div>
       </div>`;
   }
 
   const { sorted, positions, canvasWidth } = layout();
   const canvasH = TRACK_Y + CARD_SIZE + STEM_H + 40;
 
-  // Wrong markers
   const wrongHTML = State.wrongMarkers.map(m => {
-    // Find where this wrong guess falls among current sorted positions
     const x = interpolateX(m.guessedPct, sorted, positions);
     return `<div class="wrong-marker" style="left:${x}px;top:${TRACK_Y}px"></div>`;
   }).join('');
 
-  // Placed cards — alternate above/below
   const cardsHTML = sorted.map((entry, i) => {
-    const x      = positions[i];
-    const above  = i % 2 === 0;
-    const cardTop= above ? TRACK_Y - CARD_SIZE - STEM_H : TRACK_Y + STEM_H;
-    const stemTop= above ? TRACK_Y - STEM_H             : TRACK_Y;
+    const x       = positions[i];
+    const above   = i % 2 === 0;
+    const cardTop = above ? TRACK_Y - CARD_SIZE - STEM_H : TRACK_Y + STEM_H;
+    const stemTop = above ? TRACK_Y - STEM_H             : TRACK_Y;
 
     return `
       <div class="scard placed-scard" style="left:${x}px;top:${cardTop}px">
         <div class="scard-decade">${entry.card.decade}</div>
         <div class="scard-question">${entry.card.question}</div>
         <div class="scard-pct">${entry.card.pct.toFixed(1)}%</div>
-        ${entry.wrongAttempts > 0 ? `<div class="wrong-marks">${'<span class="x-mark">✕</span>'.repeat(Math.min(entry.wrongAttempts,8))}</div>` : ''}
+        ${entry.wrongAttempts > 0
+          ? `<div class="wrong-marks">${'<span class="x-mark">✕</span>'.repeat(Math.min(entry.wrongAttempts,8))}</div>`
+          : ''}
       </div>
       <div class="pin-stem"  style="left:${x}px;top:${stemTop}px;height:${STEM_H}px"></div>
       <div class="track-dot" style="left:${x}px;top:${TRACK_Y}px"></div>
@@ -246,19 +248,19 @@ function renderTimeline() {
       <div class="tl-axis-label" style="top:${TRACK_Y+14}px;right:60px;text-align:right">MORE COMMON →</div>
       ${wrongHTML}
       ${cardsHTML}
-      <div class="drop-overlay" id="drop-overlay" style="width:${canvasWidth}px;height:${canvasH}px;display:none;cursor:crosshair"></div>
+      <div class="drop-overlay" id="drop-overlay"
+           style="width:${canvasWidth}px;height:${canvasH}px;display:none;cursor:crosshair"></div>
     </div>`;
 }
 
-// Interpolate x position for a pct value among sorted placed cards
 function interpolateX(pct, sorted, positions) {
   const pcts = sorted.map(s => s.card.pct);
   if (pct <= pcts[0])               return positions[0] - SPACING * 0.5;
-  if (pct >= pcts[pcts.length - 1]) return positions[positions.length-1] + SPACING * 0.5;
+  if (pct >= pcts[pcts.length - 1]) return positions[positions.length - 1] + SPACING * 0.5;
   for (let i = 0; i < pcts.length - 1; i++) {
-    if (pct >= pcts[i] && pct <= pcts[i+1]) {
-      const t = (pct - pcts[i]) / (pcts[i+1] - pcts[i]);
-      return positions[i] + t * (positions[i+1] - positions[i]);
+    if (pct >= pcts[i] && pct <= pcts[i + 1]) {
+      const t = (pct - pcts[i]) / (pcts[i + 1] - pcts[i]);
+      return positions[i] + t * (positions[i + 1] - positions[i]);
     }
   }
   return positions[0];
@@ -286,7 +288,7 @@ function setupInteraction() {
   overlay.addEventListener('dragover', e => {
     e.preventDefault();
     overlay.classList.add('overlay-hover');
-    updateGhost(clientXtoRelativePct(e.clientX), e.clientX);
+    updateGhost(e.clientX);
   });
 
   overlay.addEventListener('dragleave', () => {
@@ -307,8 +309,7 @@ function setupInteraction() {
   incoming.addEventListener('touchend',   onTouchEnd,   { passive: false });
 }
 
-// Ghost — vertical line showing where card would go
-function updateGhost(pct, clientX) {
+function updateGhost(clientX) {
   const inner = document.getElementById('tl-inner');
   if (!inner) return;
   let g = document.getElementById('drop-ghost');
@@ -319,10 +320,8 @@ function updateGhost(pct, clientX) {
     g.style.height = (TRACK_Y + 20) + 'px';
     inner.appendChild(g);
   }
-  // Position ghost at actual clientX translated to canvas coords
   const rect = inner.getBoundingClientRect();
-  const x    = clientX - rect.left;
-  g.style.left = x + 'px';
+  g.style.left = (clientX - rect.left) + 'px';
 }
 
 function removeGhost() {
@@ -338,11 +337,11 @@ function onTouchStart(e) {
   const rect  = el.getBoundingClientRect();
   State.touchOffsetX = touch.clientX - rect.left;
   State.touchOffsetY = touch.clientY - rect.top;
-  State.touchClone = el.cloneNode(true);
+  State.touchClone   = el.cloneNode(true);
   Object.assign(State.touchClone.style, {
     position:'fixed', zIndex:'9999', pointerEvents:'none',
-    width:rect.width+'px', opacity:'0.9',
-    left:rect.left+'px', top:rect.top+'px',
+    width: rect.width+'px', opacity:'0.9',
+    left: rect.left+'px', top: rect.top+'px',
     transform:'scale(1.04)', transition:'none',
   });
   document.body.appendChild(State.touchClone);
@@ -361,7 +360,7 @@ function onTouchMove(e) {
   if (inner) {
     const rect = inner.getBoundingClientRect();
     const over = touch.clientY >= rect.top - 40 && touch.clientY <= rect.bottom + 60;
-    if (over) updateGhost(clientXtoRelativePct(touch.clientX), touch.clientX);
+    if (over) updateGhost(touch.clientX);
     else removeGhost();
   }
 }
@@ -387,7 +386,6 @@ function attemptPlace(guessedPct) {
   const card = State.todayCards[State.currentIndex];
   State.attempts++;
 
-  // Correct if guessedPct preserves the relative order of all placed cards
   const correct = State.placed.every(p =>
     (p.card.pct < card.pct  && p.card.pct <= guessedPct) ||
     (p.card.pct > card.pct  && p.card.pct >= guessedPct) ||
@@ -395,7 +393,7 @@ function attemptPlace(guessedPct) {
   );
 
   if (correct) {
-    const cardValue    = State.currentIndex;  // card 2 = 1pt, card 8 = 7pt
+    const cardValue    = State.currentIndex;  // card 2 = 1pt ... card 8 = 7pt
     const wrongCount   = State.attempts - 1;
     const pointsEarned = Math.max(0, cardValue - wrongCount);
     State.score       += pointsEarned;
@@ -417,12 +415,8 @@ function attemptPlace(guessedPct) {
     showToast(false, 0, 0);
     const el = document.getElementById('incoming-card');
     if (el) { el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 500); }
-    // Refresh only the timeline canvas
     const canvas = document.getElementById('timeline-canvas');
-    if (canvas) {
-      canvas.innerHTML = renderTimeline();
-      setupInteraction();
-    }
+    if (canvas) { canvas.innerHTML = renderTimeline(); setupInteraction(); }
   }
 }
 
@@ -448,7 +442,7 @@ function endGame() {
 }
 
 function renderEndScreen() {
-  const totalMax = 28; // sum 1..7
+  const totalMax = 28;
   const pct  = Math.round(State.score / totalMax * 100);
   const grid = State.results.map(r =>
     r.pointsEarned === r.cardValue ? '🟩' : r.pointsEarned > 0 ? '🟨' : '🟥'
@@ -539,7 +533,7 @@ function startCountdown() {
   tick(); setInterval(tick, 1000);
 }
 function showError(msg) {
-  document.getElementById('game-root').innerHTML=`<div class="error-msg">${msg}</div>`;
+  document.getElementById('game-root').innerHTML = `<div class="error-msg">${msg}</div>`;
 }
 
 document.addEventListener('DOMContentLoaded', init);
