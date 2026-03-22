@@ -1,0 +1,35 @@
+#API key
+claude_api_key.txt
+
+# Large data files — never commit these
+*.dta
+*.parquet
+
+# Intermediate pipeline files
+binary_*.csv
+data_driven_binary.csv
+game_cards_final.csv
+game_cards_exploded.csv
+game_cards_with_text.csv
+game_cards_for_review.csv
+audit_*.csv
+candidate_schedule.csv
+question_text_*.csv
+*checkpoint*.csv
+generation_errors.csv
+audit_errors.csv
+
+# Temp folder
+temp/
+
+# Batch processing folder
+batches/
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# OS
+.DS_Store
+Thumbs.db
