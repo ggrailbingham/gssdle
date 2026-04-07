@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSSdle — Card Review v4</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:       #0a0a0f;
+  --surface:  #13131a;
+  --surface2: #1a1a24;
+  --surface3: #21212e;
+  --border:   #2a2a3a;
+  --border2:  #383850;
+  --accent:   #7c6aff;
+  --accent2:  #a594ff;
+  --yellow:   #ffd166;
+  --red:      #ff5c5c;
+  --green:    #5cffa0;
+  --blue:     #5cc8ff;
+  --orange:   #ff8c42;
+  --text:     #e8e8f0;
+  --muted:    #5a5a7a;
+  --surf:     #1a1a24;
+  --r:        6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'DM Sans', sans-serif; min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(124,106,255,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(92,200,255,0.04) 0%, transparent 55%);
+}
+
+/* ── UPLOAD ─────────────────────────────────────────────── */
+#upload-screen {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 100vh; gap: 40px; padding: 40px;
+}
+.brand { text-align: center; }
+.brand h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(80px, 12vw, 140px); letter-spacing: 8px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--blue) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; line-height: 1;
+}
+.brand p { font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-top: 8px; }
+.upload-zone {
+  border: 1px solid var(--border); border-radius: 8px; padding: 56px 80px;
+  text-align: center; cursor: pointer; transition: all 0.25s;
+  max-width: 480px; width: 100%; background: var(--surface); position: relative; overflow: hidden;
+}
+.upload-zone::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(124,106,255,0.05), transparent); opacity: 0; transition: opacity 0.25s; }
+.upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); transform: translateY(-2px); }
+.upload-icon { font-size: 48px; margin-bottom: 20px; }
+.upload-zone h3 { font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: 2px; color: var(--text); margin-bottom: 8px; }
+.upload-zone p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+#file-input { display: none; }
+
+/* ── TOPBAR ─────────────────────────────────────────────── */
+#review-screen { display: none; min-height: 100vh; }
+.topbar {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(10,10,15,0.94); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border); padding: 0 24px; height: 52px;
+  display: flex; align-items: center; gap: 16px;
+}
+.topbar-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; background: linear-gradient(135deg, var(--accent), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; flex-shrink: 0; }
+.topbar-progress { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.progress-meta { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+.progress-track { height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; }
+.progress-fill  { height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); transition: width 0.4s ease; }
+.topbar-chips { display: flex; gap: 6px; flex-shrink: 0; }
+.chip { font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.5px; border: 1px solid; }
+.chip-keep    { color: var(--green);  border-color: rgba(92,255,160,0.3);  background: rgba(92,255,160,0.08); }
+.chip-edit    { color: var(--accent2);border-color: rgba(165,148,255,0.3); background: rgba(165,148,255,0.08); }
+.chip-defer   { color: var(--yellow); border-color: rgba(255,209,102,0.3); background: rgba(255,209,102,0.08); }
+.chip-remove  { color: var(--red);    border-color: rgba(255,92,92,0.3);   background: rgba(255,92,92,0.08); }
+.chip-pending { color: var(--muted);  border-color: var(--border);         background: var(--surface); }
+.export-btn { background: linear-gradient(135deg, var(--accent), var(--blue)); color: #fff; border: none; padding: 6px 16px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 1px; cursor: pointer; border-radius: 4px; transition: opacity 0.2s, transform 0.15s; flex-shrink: 0; }
+.export-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* ── FILTERBAR ──────────────────────────────────────────── */
+.filterbar { padding: 8px 24px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; background: var(--surface); }
+.filter-btn { font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 11px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; letter-spacing: 0.5px; }
+.filter-btn:hover  { border-color: var(--border2); color: var(--text); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.batch-btn { font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 11px; border-radius: 20px; border: 1px solid rgba(255,140,66,0.4); background: rgba(255,140,66,0.1); color: var(--orange); cursor: pointer; transition: all 0.15s; letter-spacing: 0.5px; margin-left: auto; }
+.batch-btn:hover { background: rgba(255,140,66,0.2); }
+
+/* ── MAIN LAYOUT ────────────────────────────────────────── */
+.main-layout { display: grid; grid-template-columns: 1fr 340px; min-height: calc(100vh - 52px - 41px); }
+
+/* ── LEFT ───────────────────────────────────────────────── */
+.card-area { padding: 20px 24px; border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.nav-row { display: flex; align-items: center; gap: 10px; }
+.nav-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border-radius: 4px; transition: all 0.15s; letter-spacing: 0.5px; }
+.nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.nav-btn:disabled { opacity: 0.25; cursor: default; }
+.card-pos { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); flex: 1; text-align: center; }
+
+.ai-banner { border-radius: 6px; padding: 9px 16px; display: flex; align-items: center; gap: 10px; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.5px; border: 1px solid; }
+.banner-high   { background: rgba(255,92,92,0.08);   border-color: rgba(255,92,92,0.35);   color: var(--red); }
+.banner-minor  { background: rgba(255,209,102,0.08); border-color: rgba(255,209,102,0.35); color: var(--yellow); }
+.banner-ok     { background: rgba(92,255,160,0.06);  border-color: rgba(92,255,160,0.25);  color: var(--green); }
+.banner-failed { background: rgba(255,140,66,0.08);  border-color: rgba(255,140,66,0.35);  color: var(--orange); }
+.banner-reject { background: rgba(255,92,92,0.1);    border-color: rgba(255,92,92,0.4);    color: var(--red); }
+.banner-label  { font-weight: 500; }
+.banner-detail { opacity: 0.75; font-style: italic; }
+
+.sec-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+
+.orig-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.orig-box-header { padding: 11px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.var-code { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--accent2); text-transform: uppercase; margin-bottom: 5px; }
+.var-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.vtag { font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 7px; border-radius: 3px; border: 1px solid var(--border); color: var(--muted); background: var(--surface2); }
+.vtag.route       { color: var(--blue);    border-color: rgba(92,200,255,0.3);  background: rgba(92,200,255,0.06); }
+.vtag.scale       { color: var(--accent2); border-color: rgba(165,148,255,0.3); background: rgba(165,148,255,0.06); }
+.vtag.risk-HIGH   { color: var(--red);     border-color: rgba(255,92,92,0.3);   background: rgba(255,92,92,0.06); }
+.vtag.risk-MEDIUM { color: var(--yellow);  border-color: rgba(255,209,102,0.3); background: rgba(255,209,102,0.06); }
+.vtag.risk-LOW    { color: var(--green);   border-color: rgba(92,255,160,0.3);  background: rgba(92,255,160,0.06); }
+.norc-link { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent2); text-decoration: none; opacity: 0.7; transition: opacity 0.15s; border-bottom: 1px solid rgba(165,148,255,0.3); padding-bottom: 1px; flex-shrink: 0; white-space: nowrap; }
+.norc-link:hover { opacity: 1; }
+.orig-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.orig-question-text { font-size: 13px; color: var(--text); line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+.orig-description   { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+.labels-table { width: 100%; border-collapse: collapse; }
+.labels-table td { font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 0; vertical-align: top; line-height: 1.4; }
+.labels-table td.lnum  { width: 36px; color: var(--border2); white-space: nowrap; }
+.labels-table td.lname { color: var(--muted); padding-right: 16px; }
+.labels-table td.lpct  { color: var(--accent2); text-align: right; white-space: nowrap; min-width: 52px; }
+.labels-table tr.chosen td.lnum  { color: var(--green); }
+.labels-table tr.chosen td.lname { color: var(--green); }
+.labels-table tr.chosen td.lpct  { color: var(--green); }
+
+.agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.agent-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-height: 90px; }
+.agent-box .sec-label { margin-bottom: 2px; }
+.agent-val { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text); line-height: 1.55; flex: 1; white-space: pre-wrap; word-break: break-word; }
+.agent-val.blank { color: var(--muted); font-style: italic; }
+.conf-val { font-family: 'Bebas Neue', sans-serif; font-size: 36px; line-height: 1; background: linear-gradient(135deg, var(--accent), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+.mockup-wrapper { display: flex; align-items: flex-start; gap: 20px; }
+.scard { width: 150px; height: 150px; background: var(--surf); border: 1px solid var(--border2); border-radius: var(--r); padding: 10px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; flex-shrink: 0; }
+.scard-decade { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--accent2); letter-spacing: 0.5px; line-height: 1; flex-shrink: 0; }
+.scard-question { font-size: 10px; line-height: 1.4; color: var(--text); flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; }
+.scard-pct { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; color: var(--accent2); flex-shrink: 0; }
+.mockup-note { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); line-height: 1.7; flex: 1; }
+
+/* ── RIGHT PANEL ─────────────────────────────────────────── */
+.action-panel { padding: 18px; display: flex; flex-direction: column; gap: 18px; position: sticky; top: 93px; height: calc(100vh - 93px); overflow-y: auto; }
+.panel-title { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 7px; }
+
+.status-display { padding: 9px 12px; border-radius: 5px; font-family: 'DM Mono', monospace; font-size: 12px; text-align: center; letter-spacing: 0.5px; border: 1px solid; }
+.s-pending  { background: rgba(90,90,122,0.15); border-color: var(--border);              color: var(--muted); }
+.s-kept     { background: rgba(92,255,160,0.1);  border-color: rgba(92,255,160,0.4);       color: var(--green); }
+.s-edited   { background: rgba(124,106,255,0.1); border-color: rgba(124,106,255,0.4);      color: var(--accent2); }
+.s-removed  { background: rgba(255,92,92,0.1);   border-color: rgba(255,92,92,0.4);        color: var(--red); }
+.s-deferred { background: rgba(255,209,102,0.1); border-color: rgba(255,209,102,0.4);      color: var(--yellow); }
+.s-skipped  { background: rgba(90,90,122,0.15);  border-color: var(--border);              color: var(--muted); }
+
+.action-btns { display: flex; flex-direction: column; gap: 6px; }
+.abtn { padding: 10px 12px; border-radius: 5px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border: 1px solid; transition: all 0.15s; text-align: left; background: transparent; letter-spacing: 0.3px; display: flex; align-items: center; gap: 8px; width: 100%; }
+.abtn-save   { color: var(--green);  border-color: rgba(92,255,160,0.25); }
+.abtn-defer  { color: var(--yellow); border-color: rgba(255,209,102,0.25); }
+.abtn-remove { color: var(--red);    border-color: rgba(255,92,92,0.25); }
+.abtn-skip   { color: var(--muted);  border-color: var(--border); }
+.abtn-save:hover,   .abtn-save.active   { background: rgba(92,255,160,0.1);   border-color: var(--green); }
+.abtn-defer:hover,  .abtn-defer.active  { background: rgba(255,209,102,0.1);  border-color: var(--yellow); }
+.abtn-remove:hover, .abtn-remove.active { background: rgba(255,92,92,0.1);    border-color: var(--red); }
+.abtn-skip:hover,   .abtn-skip.active   { background: rgba(90,90,122,0.15);   border-color: var(--border2); color: var(--text); }
+.abtn-icon { font-size: 13px; }
+
+.edit-section { display: flex; flex-direction: column; gap: 8px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+.field textarea, .field input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; border-radius: 4px; resize: vertical; transition: border-color 0.15s; line-height: 1.5; }
+.field textarea:focus, .field input:focus { outline: none; border-color: var(--accent); }
+.wc { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); text-align: right; }
+.wc.over { color: var(--yellow); }
+
+.src-toggle { display: flex; gap: 5px; }
+.src-btn { flex: 1; padding: 5px 4px; border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.3px; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.15s; text-align: center; line-height: 1.4; }
+.src-btn:hover  { border-color: var(--border2); color: var(--text); }
+.src-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(165,148,255,0.08); }
+
+.label-picker { display: flex; flex-direction: column; gap: 5px; }
+.label-option { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); cursor: pointer; transition: all 0.15s; user-select: none; }
+.label-option:hover { border-color: var(--border2); }
+.label-option.selected { border-color: rgba(92,255,160,0.4); background: rgba(92,255,160,0.07); }
+.label-option input[type=checkbox] { accent-color: var(--green); flex-shrink: 0; cursor: pointer; }
+.label-name { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text); flex: 1; line-height: 1.35; }
+.label-pct  { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent2); flex-shrink: 0; }
+.pct-total  { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text); text-align: right; padding-top: 3px; }
+.pct-total span { color: var(--accent2); }
+.no-labels  { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+
+.field textarea.reviewer-notes { font-family: 'DM Mono', monospace; font-size: 11px; min-height: 68px; color: var(--yellow); border-color: rgba(255,209,102,0.2); }
+.field textarea.reviewer-notes::placeholder { color: var(--muted); font-style: italic; }
+.field textarea.reviewer-notes:focus { border-color: var(--yellow); }
+
+/* ── DONE ───────────────────────────────────────────────── */
+#done-screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 28px; text-align: center; padding: 40px; }
+#done-screen h2 { font-family: 'Bebas Neue', sans-serif; font-size: 80px; letter-spacing: 6px; background: linear-gradient(135deg, var(--accent), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+#done-screen p  { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--muted); line-height: 1.8; max-width: 440px; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface3); border: 1px solid var(--border2); color: var(--text); font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 18px; border-radius: 20px; letter-spacing: 0.5px; transition: transform 0.25s ease, opacity 0.25s; opacity: 0; z-index: 999; pointer-events: none; }
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ═══ UPLOAD ══════════════════════════════════════════ -->
+<div id="upload-screen">
+  <div class="brand"><h1>GSSDLE</h1><p>Card Review Tool — v4</p></div>
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <div class="upload-icon">📊</div>
+    <h3>DROP CSV TO BEGIN</h3>
+    <p>Load your pipeline output CSV<br>All columns supported · flagged cards first</p>
+  </div>
+  <input type="file" id="file-input" accept=".csv">
+</div>
+
+<!-- ═══ REVIEW ══════════════════════════════════════════ -->
+<div id="review-screen">
+  <div class="topbar">
+    <div class="topbar-logo">GSSDLE</div>
+    <div class="topbar-progress">
+      <div class="progress-meta"><span id="prog-label">0 / 0 reviewed</span><span id="prog-pct">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0"></div></div>
+    </div>
+    <div class="topbar-chips">
+      <div class="chip chip-keep">✓ <span id="c-kept">0</span></div>
+      <div class="chip chip-edit">✎ <span id="c-edited">0</span></div>
+      <div class="chip chip-defer">⏸ <span id="c-deferred">0</span></div>
+      <div class="chip chip-remove">✕ <span id="c-removed">0</span></div>
+      <div class="chip chip-pending">· <span id="c-pending">0</span></div>
+    </div>
+    <button class="export-btn" onclick="exportCSV()">EXPORT CSV</button>
+  </div>
+  <div class="filterbar" id="filterbar"></div>
+
+  <div class="main-layout">
+    <div class="card-area">
+      <div class="nav-row">
+        <button class="nav-btn" id="prev-btn" onclick="navigate(-1)" disabled>← PREV</button>
+        <div class="card-pos" id="card-pos">— / —</div>
+        <button class="nav-btn" id="next-btn" onclick="navigate(1)">NEXT →</button>
+      </div>
+      <div id="banner-slot"></div>
+      <div id="orig-slot"></div>
+      <div>
+        <div class="sec-label">Agent Comments</div>
+        <div class="agent-grid" id="agent-slot"></div>
+      </div>
+      <div>
+        <div class="sec-label">Card Mockup</div>
+        <div class="mockup-wrapper">
+          <div class="scard">
+            <div class="scard-decade">OVERALL</div>
+            <div class="scard-question" id="mock-q">—</div>
+            <div class="scard-pct"      id="mock-pct">—%</div>
+          </div>
+          <div class="mockup-note" id="mock-note"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-panel">
+      <div>
+        <div class="panel-title">Status</div>
+        <div class="status-display s-pending" id="status-disp">PENDING REVIEW</div>
+      </div>
+      <div>
+        <div class="panel-title">Decision</div>
+        <div class="action-btns">
+          <button class="abtn abtn-save"   id="abtn-save"   onclick="saveAndApprove()"><span class="abtn-icon">✓</span> Save &amp; approve</button>
+          <button class="abtn abtn-defer"  id="abtn-defer"  onclick="decide('deferred')"><span class="abtn-icon">⏸</span> Defer for later</button>
+          <button class="abtn abtn-remove" id="abtn-remove" onclick="decide('removed')"><span class="abtn-icon">✕</span> Reject card</button>
+          <button class="abtn abtn-skip"   id="abtn-skip"   onclick="decide('skipped')"><span class="abtn-icon">→</span> Skip for now</button>
+        </div>
+      </div>
+      <div class="edit-section">
+        <div class="panel-title">Question Text</div>
+        <div class="field">
+          <textarea id="e-question" rows="5"></textarea>
+          <div class="wc" id="e-wc">0 words</div>
+        </div>
+        <div class="src-toggle">
+          <button class="src-btn" id="src-human"     onclick="switchSrc('human')">human_review</button>
+          <button class="src-btn" id="src-generated" onclick="switchSrc('generated')">generated</button>
+          <button class="src-btn" id="src-final"     onclick="switchSrc('final')">final</button>
+        </div>
+      </div>
+      <div>
+        <div class="panel-title">Chosen Response Label(s)</div>
+        <div class="label-picker" id="label-picker"></div>
+        <div class="pct-total" id="pct-total"></div>
+      </div>
+      <div class="edit-section">
+        <div class="panel-title">Reviewer Notes</div>
+        <div class="field">
+          <textarea class="reviewer-notes" id="e-notes" rows="3" placeholder="Leave notes to yourself…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DONE ════════════════════════════════════════════ -->
+<div id="done-screen">
+  <h2>REVIEW COMPLETE</h2>
+  <p id="done-summary"></p>
+  <button class="export-btn" style="padding:12px 32px;font-size:13px" onclick="exportCSV()">EXPORT FINAL CSV</button>
+</div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CSV PARSER — handles quoted fields containing commas + newlines
+// ═══════════════════════════════════════════════════════════════
+function parseCSV(raw) {
+  const s = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  let pos = 0;
+
+  function readField() {
+    if (pos >= s.length || s[pos] === '\n') return '';
+    if (s[pos] === '"') {
+      pos++;
+      let v = '';
+      while (pos < s.length) {
+        if (s[pos] === '"') {
+          if (s[pos + 1] === '"') { v += '"'; pos += 2; }
+          else { pos++; break; }
+        } else { v += s[pos++]; }
+      }
+      return v;
+    }
+    let v = '';
+    while (pos < s.length && s[pos] !== ',' && s[pos] !== '\n') v += s[pos++];
+    return v;
+  }
+
+  function readRow() {
+    const fields = [];
+    while (pos < s.length && s[pos] !== '\n') {
+      fields.push(readField());
+      if (pos < s.length && s[pos] === ',') pos++;
+    }
+    if (pos < s.length && s[pos] === '\n') pos++;
+    return fields;
+  }
+
+  const headerFields = readRow();
+  const headers = headerFields.map(h => h.trim());
+  const rows = [];
+  while (pos < s.length) {
+    const fields = readRow();
+    if (fields.length === 1 && fields[0].trim() === '') continue;
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = i < fields.length ? fields[i] : ''; });
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function toCSV(rows) {
+  if (!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const esc = v => {
+    const s = String(v ?? '');
+    return (s.includes(',') || s.includes('"') || s.includes('\n'))
+      ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return [headers.join(','), ...rows.map(r => headers.map(h => esc(r[h])).join(','))].join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function blank(v) {
+  if (v === undefined || v === null) return true;
+  const s = String(v).trim().toLowerCase();
+  return s === '' || s === 'nan' || s === 'none';
+}
+function H(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Parse "[1] yes / [2] no / [NA(i)] iap / ..." → [{num, label}] (non-NA only)
+function parseValueLabels(str) {
+  if (blank(str)) return [];
+  return str.split('/')
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && !/^\[?NA/i.test(s) && !/^NA\s/i.test(s))
+    .map(s => {
+      const m = s.match(/^\[(\d+(?:\.\d+)?)\]\s*(.+)$/);
+      return m ? { num: parseFloat(m[1]), label: m[2].trim() } : { num: null, label: s };
+    });
+}
+
+// Parse response_pcts Python list-of-dicts → Map<float, entry>
+function parseResponsePcts(str) {
+  if (blank(str)) return new Map();
+  try {
+    const json = str
+      .replace(/'/g, '"')
+      .replace(/\bnan\b/gi, 'null')
+      .replace(/\bNone\b/g, 'null')
+      .replace(/\bTrue\b/g, 'true')
+      .replace(/\bFalse\b/g, 'false');
+    const arr = JSON.parse(json);
+    const map = new Map();
+    arr.forEach(e => {
+      const k = parseFloat(e.resp_label);
+      if (!isNaN(k)) map.set(k, e);
+    });
+    return map;
+  } catch (e) { return new Map(); }
+}
+
+// Parse chosen_response_raw_labels "['1','2']" → Set<float>
+function parseChosenRaw(str) {
+  if (blank(str)) return new Set();
+  try {
+    const arr = JSON.parse(str.replace(/'/g, '"'));
+    const s = new Set();
+    arr.forEach(v => { const n = parseFloat(v); if (!isNaN(n)) s.add(n); });
+    return s;
+  } catch (e) { return new Set(); }
+}
+
+// Parse chosen_response "1" or "1.0 + 2.0" → Set<float>  (fallback)
+function parseChosenResponse(str) {
+  if (blank(str)) return new Set();
+  const s = new Set();
+  str.split(/\+/).forEach(p => { const n = parseFloat(p.trim()); if (!isNaN(n)) s.add(n); });
+  return s;
+}
+
+// Sum pcts for chosen labels; response_pcts values are 0–1, return 0–100
+function sumChosenPct(chosenNums, respPctMap) {
+  let sum = 0;
+  chosenNums.forEach(n => {
+    const e = respPctMap.get(n);
+    if (e && e.pct_overall != null) sum += parseFloat(e.pct_overall) || 0;
+  });
+  return sum * 100;
+}
+
+// Default question text: Question_text_human_review if present, else question_text_generated
+function defaultQuestion(card) {
+  if (!blank(card['Question_text_human_review'])) return card['Question_text_human_review'];
+  return blank(card['question_text_generated']) ? '' : card['question_text_generated'];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let allRows    = [];
+let cards      = [];
+let filtered   = [];
+let currentIdx = 0;
+let activeFilter = 'all';
+
+// decisions[variable] = { status, questionText, chosenNums, pctOverride, reviewerNotes, _srcActive }
+let decisions = {};
+
+function sortPriority(c) {
+  if (c.reviewer_failed === 'True') return 0;
+  const et = (c.edit_type || '').toUpperCase();
+  if (et === 'HIGH_EDIT')      return 1;
+  if (et === 'MINOR_PHRASING') return 2;
+  if (c.human_review === 'True') return 3;
+  if (c.reject === 'True')     return 4;
+  return 5;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOAD
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+const uz = document.getElementById('upload-zone');
+uz.addEventListener('dragover',  e => { e.preventDefault(); uz.classList.add('drag-over'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('drag-over'));
+uz.addEventListener('drop', e => { e.preventDefault(); uz.classList.remove('drag-over'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    allRows = parseCSV(ev.target.result);
+    const seen = new Set(); cards = [];
+    allRows.forEach(r => { if (!seen.has(r.variable)) { seen.add(r.variable); cards.push(r); } });
+    cards.sort((a, b) => sortPriority(a) - sortPriority(b));
+
+    decisions = {};
+    cards.forEach(c => {
+      let chosenNums = parseChosenRaw(c.chosen_response_raw_labels);
+      if (chosenNums.size === 0) chosenNums = parseChosenResponse(c.chosen_response);
+      decisions[c.variable] = {
+        status:        'pending',
+        questionText:  defaultQuestion(c),
+        chosenNums:    new Set(chosenNums),   // own copy
+        pctOverride:   null,
+        reviewerNotes: blank(c['Reviewer notes']) ? '' : c['Reviewer notes'],
+        _srcActive:    blank(c['Question_text_human_review']) ? 'generated' : 'human',
+      };
+    });
+
+    buildFilters();
+    applyFilter('all');
+    document.getElementById('upload-screen').style.display = 'none';
+    document.getElementById('review-screen').style.display = 'block';
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════════════════════
+function buildFilters() {
+  const n = { all: cards.length, high:0, minor:0, flagged:0, failed:0, rejected:0, clean:0 };
+  cards.forEach(c => {
+    const et = (c.edit_type || '').toUpperCase();
+    if      (c.reviewer_failed === 'True')  n.failed++;
+    else if (et === 'HIGH_EDIT')            n.high++;
+    else if (et === 'MINOR_PHRASING')       n.minor++;
+    else if (c.reject === 'True')           n.rejected++;
+    else if (c.human_review === 'True')     n.flagged++;
+    else                                    n.clean++;
+  });
+  const defs = [
+    { key:'all',      label:`ALL (${n.all})` },
+    { key:'high',     label:`🔴 HIGH EDIT (${n.high})` },
+    { key:'minor',    label:`🟡 MINOR (${n.minor})` },
+    { key:'flagged',  label:`🟠 FLAGGED (${n.flagged})` },
+    { key:'failed',   label:`⚠ FAILED (${n.failed})` },
+    { key:'rejected', label:`✕ REJECTED (${n.rejected})` },
+    { key:'clean',    label:`🟢 CLEAN (${n.clean})` },
+  ];
+  document.getElementById('filterbar').innerHTML =
+    defs.map(d => `<button class="filter-btn${d.key==='all'?' active':''}" onclick="applyFilter('${d.key}')" data-key="${d.key}">${d.label}</button>`).join('')
+    + (n.failed > 0 ? `<button class="batch-btn" onclick="batchApproveFailed()">⚠ BATCH APPROVE FAILED (${n.failed})</button>` : '');
+}
+
+function applyFilter(key) {
+  activeFilter = key;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.key === key));
+  const et = s => (s.edit_type || '').toUpperCase();
+  filtered =
+    key==='all'      ? [...cards] :
+    key==='high'     ? cards.filter(c => et(c) === 'HIGH_EDIT') :
+    key==='minor'    ? cards.filter(c => et(c) === 'MINOR_PHRASING') :
+    key==='flagged'  ? cards.filter(c => c.human_review==='True' && et(c)==='NONE' && c.reviewer_failed!=='True') :
+    key==='failed'   ? cards.filter(c => c.reviewer_failed === 'True') :
+    key==='rejected' ? cards.filter(c => c.reject === 'True') :
+    cards.filter(c => c.reviewer_failed!=='True' && et(c)==='NONE' && c.reject!=='True' && c.human_review!=='True');
+
+  currentIdx = 0;
+  if (!filtered.length) {
+    document.getElementById('card-pos').textContent = '0 / 0';
+    ['prev-btn','next-btn'].forEach(id => document.getElementById(id).disabled = true);
+    document.getElementById('banner-slot').innerHTML = '';
+    document.getElementById('orig-slot').innerHTML   = '<div style="padding:32px;text-align:center;color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px">NO CARDS IN THIS FILTER</div>';
+    document.getElementById('agent-slot').innerHTML  = '';
+    return;
+  }
+  renderCard(0);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATE
+// ═══════════════════════════════════════════════════════════════
+function navigate(dir) {
+  const n = currentIdx + dir;
+  if (n >= 0 && n < filtered.length) { flushEdits(); renderCard(n); }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   navigate(-1);
+  if (e.key === 'd' || e.key === 'D') decide('deferred');
+  if (e.key === 'r' || e.key === 'R') decide('removed');
+  if (e.key === 's' || e.key === 'S') decide('skipped');
+});
+
+// ═══════════════════════════════════════════════════════════════
+// FLUSH — write panel state back to decisions[] before leaving
+// ═══════════════════════════════════════════════════════════════
+function flushEdits() {
+  const card = filtered[currentIdx];
+  if (!card) return;
+  const dec = decisions[card.variable];
+  if (!dec) return;
+  dec.questionText  = document.getElementById('e-question').value;
+  dec.reviewerNotes = document.getElementById('e-notes').value;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER CARD — the only place that writes to the DOM
+// ═══════════════════════════════════════════════════════════════
+function renderCard(idx) {
+  currentIdx = idx;
+  const card = filtered[idx];
+  if (!card) return;
+  const dec = decisions[card.variable];
+
+  const editType       = (card.edit_type || '').toUpperCase();
+  const reviewerFailed = card.reviewer_failed === 'True';
+  const pipelineRej    = card.reject === 'True';
+  const humanReview    = card.human_review === 'True';
+
+  // Nav
+  document.getElementById('card-pos').textContent = `${idx+1} / ${filtered.length}`;
+  document.getElementById('prev-btn').disabled    = idx === 0;
+  document.getElementById('next-btn').disabled    = idx === filtered.length - 1;
+
+  // Banner
+  let banCls='banner-ok', banIcon='🟢', banLabel='REVIEWER: LOOKS GOOD', banDetail='';
+  if      (reviewerFailed)              { banCls='banner-failed'; banIcon='⚠';  banLabel='REVIEWER AGENT FAILED';  banDetail='non-JSON response — no AI audit'; }
+  else if (pipelineRej)                 { banCls='banner-reject'; banIcon='✕';  banLabel='PIPELINE REJECTED';      banDetail=H(card.reject_reason||''); }
+  else if (editType==='HIGH_EDIT')      { banCls='banner-high';   banIcon='🔴'; banLabel='HIGH EDIT NEEDED';       banDetail=H(card.flag_reason||''); }
+  else if (editType==='MINOR_PHRASING') { banCls='banner-minor';  banIcon='🟡'; banLabel='MINOR PHRASING ISSUE';   banDetail=H(card.flag_reason||''); }
+  else if (humanReview)                 { banCls='banner-minor';  banIcon='🟠'; banLabel='FLAGGED FOR REVIEW';     banDetail=H(card.flag_reason||''); }
+
+  document.getElementById('banner-slot').innerHTML =
+    `<div class="ai-banner ${banCls}">
+       <span>${banIcon}</span>
+       <span class="banner-label">${banLabel}</span>
+       ${banDetail ? `<span class="banner-detail">— ${banDetail}</span>` : ''}
+     </div>`;
+
+  // Parse labels & pcts
+  const valueLabels = parseValueLabels(card.value_labels || '');
+  const respPctMap  = parseResponsePcts(card.response_pcts || '');
+
+  // Tags + NORC
+  const riskCls = card.risk_tier ? `risk-${card.risk_tier}` : '';
+  const tagHTML = [
+    card.pipeline_route ? `<span class="vtag route">${H(card.pipeline_route)}</span>` : '',
+    card.scale_type     ? `<span class="vtag scale">${H(card.scale_type)}</span>`      : '',
+    card.risk_tier      ? `<span class="vtag ${riskCls}">${H(card.risk_tier)} RISK</span>` : '',
+    card.module         ? `<span class="vtag">${H(card.module)}</span>`                : '',
+  ].filter(Boolean).join('');
+  const norcHTML = !blank(card.norc_url)
+    ? `<a class="norc-link" href="${H(card.norc_url)}" target="_blank" rel="noopener">↗ NORC</a>` : '';
+
+  // Labels table — ALL non-NA labels, chosen ones green
+  const labelRowsHTML = valueLabels.map(({num, label}) => {
+    const entry   = (num !== null) ? respPctMap.get(num) : null;
+    const pctFrac = entry ? parseFloat(entry.pct_overall) : null;
+    const pctDisp = (pctFrac !== null && !isNaN(pctFrac)) ? (pctFrac * 100).toFixed(1) + '%' : '';
+    const chosen  = (num !== null) && dec.chosenNums.has(num);
+    return `<tr class="${chosen ? 'chosen' : ''}">
+      <td class="lnum">${num !== null ? '[' + num + ']' : ''}</td>
+      <td class="lname">${H(label)}</td>
+      <td class="lpct">${pctDisp}</td>
+    </tr>`;
+  }).join('');
+
+  // Orig box
+  document.getElementById('orig-slot').innerHTML = `
+    <div class="orig-box">
+      <div class="orig-box-header">
+        <div>
+          <div class="var-code">${H(card.variable)}</div>
+          <div class="var-tags" style="margin-top:5px">${tagHTML}</div>
+        </div>
+        ${norcHTML}
+      </div>
+      <div class="orig-body">
+        ${!blank(card.question_text)  ? `<div class="orig-question-text">${H(card.question_text)}</div>` : ''}
+        ${labelRowsHTML               ? `<table class="labels-table">${labelRowsHTML}</table>` : ''}
+        ${!blank(card.description)    ? `<div class="orig-description">${H(card.description)}</div>` : ''}
+      </div>
+    </div>`;
+
+  // Agent grid
+  const confRaw = parseFloat(card.confidence);
+  const confPct = !isNaN(confRaw) ? Math.round(confRaw * 100) + '%' : '—';
+  document.getElementById('agent-slot').innerHTML =
+    [
+      { label:'PCT REASONING', val: card.pct_reasoning },
+      { label:'FLAG REASON',   val: card.flag_reason },
+      { label:'SUGGESTED FIX', val: card.suggested_fix },
+      { label:'REJECT REASON', val: card.reject_reason },
+    ].map(({ label, val }) => {
+      const b = blank(val);
+      return `<div class="agent-box">
+        <div class="sec-label">${label}</div>
+        <div class="agent-val${b?' blank':''}">${b ? '—' : H(val)}</div>
+      </div>`;
+    }).join('')
+    + `<div class="agent-box" style="grid-column:span 2;flex-direction:row;align-items:center;gap:16px">
+         <div class="sec-label" style="margin:0">CONFIDENCE</div>
+         <div class="conf-val">${confPct}</div>
+       </div>`;
+
+  // ── RIGHT PANEL — write all fields from dec ───────────────
+  // Question text editor — always write from dec.questionText, which was set on load or last flush
+  document.getElementById('e-question').value = dec.questionText;
+  updateWC();
+
+  // Source toggle highlight
+  setSrcHighlight(dec._srcActive || 'generated');
+
+  // Label picker
+  renderLabelPicker(valueLabels, respPctMap, dec.chosenNums);
+
+  // Reviewer notes
+  document.getElementById('e-notes').value = dec.reviewerNotes || '';
+
+  // Mockup
+  updateMockup(dec, card, respPctMap);
+
+  // Status
+  updateStatus(dec.status);
+  updateStats();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SOURCE TOGGLE
+// ═══════════════════════════════════════════════════════════════
+function setSrcHighlight(src) {
+  ['human','generated','final'].forEach(k =>
+    document.getElementById('src-' + k).classList.toggle('active', k === src)
+  );
+}
+
+function switchSrc(src) {
+  flushEdits();
+  const card = filtered[currentIdx];
+  if (!card) return;
+  const dec = decisions[card.variable];
+  const srcMap = {
+    human:     card['Question_text_human_review'] || '',
+    generated: card['question_text_generated']    || '',
+    final:     card['question_text_final']         || '',
+  };
+  dec.questionText = srcMap[src];
+  dec._srcActive   = src;
+  document.getElementById('e-question').value = dec.questionText;
+  setSrcHighlight(src);
+  updateWC();
+  updateMockup(dec, card, parseResponsePcts(card.response_pcts || ''));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LABEL PICKER
+// ═══════════════════════════════════════════════════════════════
+function renderLabelPicker(valueLabels, respPctMap, chosenNums) {
+  const picker = document.getElementById('label-picker');
+  if (!valueLabels.length) {
+    picker.innerHTML = '<div class="no-labels">No non-NA labels available</div>';
+    document.getElementById('pct-total').innerHTML = '';
+    return;
+  }
+  picker.innerHTML = valueLabels.map(({ num, label }) => {
+    const entry   = (num !== null) ? respPctMap.get(num) : null;
+    const pctFrac = entry ? parseFloat(entry.pct_overall) : null;
+    const pctDisp = (pctFrac !== null && !isNaN(pctFrac)) ? (pctFrac * 100).toFixed(1) + '%' : '';
+    const sel     = (num !== null) && chosenNums.has(num);
+    return `<label class="label-option${sel ? ' selected' : ''}">
+      <input type="checkbox" ${sel ? 'checked' : ''} data-num="${num}"
+        onchange="toggleLabel(${num}, this.checked)">
+      <span class="label-name">${num !== null ? '[' + num + '] ' : ''}${H(label)}</span>
+      ${pctDisp ? `<span class="label-pct">${pctDisp}</span>` : ''}
+    </label>`;
+  }).join('');
+  refreshPctTotal();
+}
+
+function toggleLabel(num, checked) {
+  const card = filtered[currentIdx];
+  if (!card) return;
+  const dec = decisions[card.variable];
+  if (checked) dec.chosenNums.add(num);
+  else         dec.chosenNums.delete(num);
+
+  // Sync checkbox visual state
+  document.querySelectorAll('#label-picker .label-option').forEach(el => {
+    el.classList.toggle('selected', el.querySelector('input[type=checkbox]').checked);
+  });
+
+  // Sync orig-box table highlighting
+  document.querySelectorAll('.labels-table tr').forEach(tr => {
+    const cell = tr.querySelector('.lnum');
+    if (!cell) return;
+    const m = cell.textContent.match(/\[(\d+(?:\.\d+)?)\]/);
+    if (!m) return;
+    tr.classList.toggle('chosen', dec.chosenNums.has(parseFloat(m[1])));
+  });
+
+  refreshPctTotal();
+  updateMockup(dec, card, parseResponsePcts(card.response_pcts || ''));
+}
+
+function refreshPctTotal() {
+  const card = filtered[currentIdx];
+  if (!card) return;
+  const dec        = decisions[card.variable];
+  const respPctMap = parseResponsePcts(card.response_pcts || '');
+  const pct        = sumChosenPct(dec.chosenNums, respPctMap);
+  dec.pctOverride  = dec.chosenNums.size > 0 ? pct : null;
+  document.getElementById('pct-total').innerHTML = dec.chosenNums.size > 0
+    ? `pct_overall → <span>${pct.toFixed(2)}%</span>` : '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOCKUP
+// ═══════════════════════════════════════════════════════════════
+function updateMockup(dec, card, respPctMap) {
+  document.getElementById('mock-q').textContent   = dec.questionText || '—';
+  const pctDisplay = dec.pctOverride !== null
+    ? dec.pctOverride.toFixed(2) + '%'
+    : (!blank(card.pct_overall) ? parseFloat(card.pct_overall).toFixed(2) + '%' : '—%');
+  document.getElementById('mock-pct').textContent = pctDisplay;
+
+  const vl    = parseValueLabels(card.value_labels || '');
+  const names = [];
+  dec.chosenNums.forEach(n => {
+    const found = vl.find(l => l.num === n);
+    if (found) names.push('[' + n + '] ' + found.label);
+  });
+  document.getElementById('mock-note').innerHTML =
+    `<span style="color:var(--muted)">Chosen:</span> ${names.length ? names.join(', ') : '—'}`
+    + (dec.pctOverride !== null ? `<br><span style="color:var(--muted)">Computed:</span> ${dec.pctOverride.toFixed(2)}%` : '');
+}
+
+// Live update mockup as user types
+document.getElementById('e-question').addEventListener('input', () => {
+  updateWC();
+  const card = filtered[currentIdx];
+  if (!card) return;
+  const dec = decisions[card.variable];
+  dec.questionText = document.getElementById('e-question').value;
+  updateMockup(dec, card, parseResponsePcts(card.response_pcts || ''));
+});
+
+function updateWC() {
+  const t = document.getElementById('e-question').value.trim();
+  const w = t ? t.split(/\s+/).length : 0;
+  const el = document.getElementById('e-wc');
+  el.textContent = `${w} words`;
+  el.className   = 'wc' + (w > 20 ? ' over' : '');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DECISIONS
+// ═══════════════════════════════════════════════════════════════
+function saveAndApprove() {
+  flushEdits();
+  const card = filtered[currentIdx];
+  if (!card) return;
+  const dec = decisions[card.variable];
+
+  const origText   = defaultQuestion(card).trim();
+  const origChosen = (() => {
+    let s = parseChosenRaw(card.chosen_response_raw_labels);
+    if (s.size === 0) s = parseChosenResponse(card.chosen_response);
+    return s;
+  })();
+
+  const textChanged   = dec.questionText.trim() !== origText;
+  const chosenChanged = [...dec.chosenNums].sort().join() !== [...origChosen].sort().join();
+  dec.status = (textChanged || chosenChanged) ? 'edited' : 'kept';
+
+  updateStatus(dec.status); updateStats();
+  setTimeout(() => advance(), 280);
+}
+
+function decide(status) {
+  flushEdits();
+  const card = filtered[currentIdx];
+  if (!card) return;
+  decisions[card.variable].status = status;
+  updateStatus(status); updateStats();
+  setTimeout(() => advance(), 280);
+}
+
+function advance() {
+  if (currentIdx < filtered.length - 1) navigate(1);
+  else if (activeFilter !== 'all') applyFilter('all');
+  else showDone();
+}
+
+function batchApproveFailed() {
+  const fc = cards.filter(c => c.reviewer_failed === 'True');
+  fc.forEach(c => { decisions[c.variable].status = 'kept'; });
+  updateStats(); showToast(`Batch approved ${fc.length} reviewer-failed cards`);
+  if (filtered[currentIdx] && filtered[currentIdx].reviewer_failed === 'True') renderCard(currentIdx);
+}
+
+// ── Status + stats ────────────────────────────────────────────
+function updateStatus(status) {
+  const map = {
+    pending:  ['s-pending',  'PENDING REVIEW'],
+    kept:     ['s-kept',     '✓ APPROVED'],
+    edited:   ['s-edited',   '✎ EDITED & APPROVED'],
+    removed:  ['s-removed',  '✕ REJECTED'],
+    deferred: ['s-deferred', '⏸ DEFERRED'],
+    skipped:  ['s-skipped',  '→ SKIPPED'],
+  };
+  const [cls, label] = map[status] || map.pending;
+  const el = document.getElementById('status-disp');
+  el.className = `status-display ${cls}`; el.textContent = label;
+  document.getElementById('abtn-save').classList.toggle('active',   status==='kept'||status==='edited');
+  document.getElementById('abtn-defer').classList.toggle('active',  status==='deferred');
+  document.getElementById('abtn-remove').classList.toggle('active', status==='removed');
+  document.getElementById('abtn-skip').classList.toggle('active',   status==='skipped');
+}
+
+function updateStats() {
+  const n = { kept:0, edited:0, removed:0, deferred:0, skipped:0, pending:0 };
+  Object.values(decisions).forEach(d => n[d.status] = (n[d.status]||0) + 1);
+  document.getElementById('c-kept').textContent     = n.kept + n.edited;
+  document.getElementById('c-edited').textContent   = n.edited;
+  document.getElementById('c-deferred').textContent = n.deferred;
+  document.getElementById('c-removed').textContent  = n.removed;
+  document.getElementById('c-pending').textContent  = n.pending + n.skipped;
+  const total    = cards.length;
+  const reviewed = total - n.pending - n.skipped;
+  document.getElementById('prog-label').textContent = `${reviewed} / ${total} reviewed`;
+  const pct = total ? Math.round(reviewed / total * 100) : 0;
+  document.getElementById('prog-pct').textContent  = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+}
+
+function showDone() {
+  const n = { kept:0, edited:0, removed:0, deferred:0, skipped:0, pending:0 };
+  Object.values(decisions).forEach(d => n[d.status] = (n[d.status]||0) + 1);
+  document.getElementById('review-screen').style.display = 'none';
+  document.getElementById('done-screen').style.display   = 'flex';
+  document.getElementById('done-summary').textContent    =
+    `${n.kept+n.edited} approved (${n.edited} edited) · ${n.deferred} deferred · ${n.removed} rejected · ${n.pending+n.skipped} pending/skipped`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportCSV() {
+  const removedVars = new Set(
+    Object.entries(decisions).filter(([, d]) => d.status === 'removed').map(([v]) => v)
+  );
+  const out = allRows.filter(r => !removedVars.has(r.variable)).map(r => {
+    const dec = decisions[r.variable];
+    const row = { ...r };
+    if (!dec) { row['Human review status'] = 'unreviewed'; return row; }
+
+    // Write back edited question text
+    row['Question_text_human_review'] = dec.questionText || '';
+
+    // Sync chosen labels
+    if (dec.chosenNums.size > 0) {
+      const nums = [...dec.chosenNums].sort((a, b) => a - b);
+      row['chosen_response_raw_labels'] = "['" + nums.map(n => String(Math.floor(n))).join("', '") + "']";
+      row['chosen_response'] = nums.map(n => n % 1 === 0 ? n + '.0' : String(n)).join(' + ');
+      if (dec.pctOverride !== null) row['pct_overall'] = dec.pctOverride.toFixed(2);
+    }
+
+    if (dec.reviewerNotes) row['Reviewer notes'] = dec.reviewerNotes;
+    row['Human review status'] = dec.status;
+    return row;
+  });
+
+  const blob = new Blob([toCSV(out)], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'game_cards_reviewed.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+</script>
+</body>
+</html>

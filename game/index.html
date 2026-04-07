@@ -15,5 +15,25 @@
   </div>
   <script src="js/schedule.js"></script>
   <script src="js/game.js"></script>
+
+<div class="modal-overlay hidden" id="info-modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('info-modal').classList.add('hidden')">✕</button>
+    <div>
+      <div class="modal-section-label">Survey Question</div>
+      <div class="modal-question-text" id="modal-question-text">—</div>
+    </div>
+    <div>
+      <div class="modal-section-label">Chosen Response</div>
+      <div class="modal-response-list" id="modal-response-list"></div>
+    </div>
+    <div>
+      <div class="modal-section-label">Years Asked</div>
+      <div class="modal-years" id="modal-years">—</div>
+    </div>
+    <a class="modal-norc-link" id="modal-norc-link" href="#" target="_blank" rel="noopener">↗ View on NORC</a>
+  </div>
+</div>
+
 </body>
 </html>

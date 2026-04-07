@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSSdle — Card Review v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:       #0a0a0f;
+  --surface:  #13131a;
+  --surface2: #1a1a24;
+  --surface3: #21212e;
+  --border:   #2a2a3a;
+  --border2:  #383850;
+  --accent:   #7c6aff;
+  --accent2:  #a594ff;
+  --yellow:   #ffd166;
+  --red:      #ff5c5c;
+  --green:    #5cffa0;
+  --blue:     #5cc8ff;
+  --text:     #e8e8f0;
+  --muted:    #5a5a7a;
+  --dim:      #2e2e42;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(124,106,255,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(92,200,255,0.05) 0%, transparent 60%);
+}
+
+/* ── UPLOAD ── */
+#upload-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 40px;
+  padding: 40px;
+}
+
+.brand {
+  text-align: center;
+}
+
+.brand h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(80px, 12vw, 140px);
+  letter-spacing: 8px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.brand p {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+.upload-zone {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 56px 80px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  max-width: 480px;
+  width: 100%;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(124,106,255,0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.upload-zone:hover::before,
+.upload-zone.drag-over::before { opacity: 1; }
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.upload-icon { font-size: 48px; margin-bottom: 20px; }
+
+.upload-zone h3 {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.upload-zone p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+#file-input { display: none; }
+
+/* ── TOP BAR ── */
+#review-screen { display: none; min-height: 100vh; }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: rgba(10,10,15,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  flex-shrink: 0;
+}
+
+.topbar-progress {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+.progress-track {
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--blue));
+  transition: width 0.4s ease;
+}
+
+.topbar-chips {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.chip {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+}
+
+.chip-keep    { color: var(--green);  border-color: rgba(92,255,160,0.3);  background: rgba(92,255,160,0.08); }
+.chip-edit    { color: var(--accent2);border-color: rgba(165,148,255,0.3); background: rgba(165,148,255,0.08); }
+.chip-remove  { color: var(--red);    border-color: rgba(255,92,92,0.3);   background: rgba(255,92,92,0.08); }
+.chip-pending { color: var(--muted);  border-color: var(--border);         background: var(--surface); }
+
+.export-btn {
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  color: #fff;
+  border: none;
+  padding: 7px 18px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: opacity 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.export-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* ── FILTER BAR ── */
+.filterbar {
+  padding: 10px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--surface);
+}
+
+.filter-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+
+.filter-btn:hover { border-color: var(--border2); color: var(--text); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── MAIN LAYOUT ── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  min-height: calc(100vh - 56px - 45px);
+}
+
+/* ── CARD AREA ── */
+.card-area {
+  padding: 32px 40px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.nav-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+
+.nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.nav-btn:disabled { opacity: 0.25; cursor: default; }
+
+.card-pos {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  flex: 1;
+  text-align: center;
+}
+
+/* ── AI RECOMMENDATION BANNER ── */
+.ai-banner {
+  border-radius: 6px 6px 0 0;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+  border-bottom: none;
+}
+
+.banner-remove { background: rgba(255,92,92,0.1);   border-color: rgba(255,92,92,0.4);   color: var(--red); }
+.banner-reframe { background: rgba(255,209,102,0.1); border-color: rgba(255,209,102,0.4); color: var(--yellow); }
+.banner-keep   { background: rgba(92,255,160,0.08); border-color: rgba(92,255,160,0.3);  color: var(--green); }
+.banner-flip   { background: rgba(92,200,255,0.1);  border-color: rgba(92,200,255,0.4);  color: var(--blue); }
+
+.banner-icon { font-size: 14px; }
+.banner-label { font-weight: 500; }
+.banner-detail { opacity: 0.8; margin-left: 4px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  transition: border-color 0.2s;
+}
+
+.card.decided { border-color: var(--border2); }
+
+.card-top {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.var-info {}
+
+.var-code {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--accent2);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.var-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.conf-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+  border: 1px solid;
+}
+
+.conf-1 { color: var(--green);  border-color: rgba(92,255,160,0.3);  background: rgba(92,255,160,0.08); }
+.conf-2 { color: var(--yellow); border-color: rgba(255,209,102,0.3); background: rgba(255,209,102,0.08); }
+.conf-3 { color: var(--red);    border-color: rgba(255,92,92,0.3);   background: rgba(255,92,92,0.08); }
+
+.card-body { padding: 20px 22px; }
+
+.field-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+
+.question-display {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+/* ── REFRAME COMPARISON ── */
+.reframe-box {
+  background: var(--surface2);
+  border: 1px solid rgba(255,209,102,0.2);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.reframe-box .field-label { color: var(--yellow); margin-bottom: 6px; }
+
+.original-q {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: line-through;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.suggested-q {
+  font-size: 14px;
+  color: var(--yellow);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* ── FLIP WARNING ── */
+.flip-box {
+  background: rgba(92,200,255,0.08);
+  border: 1px solid rgba(92,200,255,0.25);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--blue);
+  line-height: 1.5;
+}
+
+/* ── STAT BAR ── */
+.stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.stat-pct {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 44px;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  min-width: 90px;
+}
+
+.stat-info { flex: 1; }
+
+.stat-label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.stat-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── DECADE PILLS ── */
+.decade-strip {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.dpill {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface2);
+}
+
+.dpill.has { border-color: var(--border2); color: var(--text); }
+.dpill.has span { color: var(--accent2); }
+
+.meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.meta-cell {}
+.meta-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 3px;
+}
+
+.raw-box {
+  background: var(--surface2);
+  border-radius: 4px;
+  padding: 10px 13px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 12px;
+}
+
+/* ── ACTION PANEL ── */
+.action-panel {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: sticky;
+  top: 101px;
+  height: calc(100vh - 101px);
+  overflow-y: auto;
+}
+
+.panel-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* ── CURRENT STATUS ── */
+.status-display {
+  padding: 10px 14px;
+  border-radius: 5px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+}
+
+.s-pending  { background: rgba(90,90,122,0.15); border-color: var(--border);              color: var(--muted); }
+.s-kept     { background: rgba(92,255,160,0.1);  border-color: rgba(92,255,160,0.4);       color: var(--green); }
+.s-edited   { background: rgba(124,106,255,0.1); border-color: rgba(124,106,255,0.4);      color: var(--accent2); }
+.s-removed  { background: rgba(255,92,92,0.1);   border-color: rgba(255,92,92,0.4);        color: var(--red); }
+.s-flipped  { background: rgba(92,200,255,0.1);  border-color: rgba(92,200,255,0.4);       color: var(--blue); }
+
+/* ── ACTION BUTTONS ── */
+.action-btns { display: flex; flex-direction: column; gap: 7px; }
+
+.abtn {
+  padding: 11px 14px;
+  border-radius: 5px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.15s;
+  text-align: left;
+  background: transparent;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.abtn-keep   { color: var(--green);  border-color: rgba(92,255,160,0.25); }
+.abtn-remove { color: var(--red);    border-color: rgba(255,92,92,0.25); }
+.abtn-flip   { color: var(--blue);   border-color: rgba(92,200,255,0.25); }
+
+.abtn-keep:hover,   .abtn-keep.active   { background: rgba(92,255,160,0.12);  border-color: var(--green); }
+.abtn-remove:hover, .abtn-remove.active { background: rgba(255,92,92,0.12);   border-color: var(--red); }
+.abtn-flip:hover,   .abtn-flip.active   { background: rgba(92,200,255,0.12);  border-color: var(--blue); }
+
+.abtn-icon { font-size: 14px; }
+
+/* ── EDIT SECTION ── */
+.edit-section { display: flex; flex-direction: column; gap: 11px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+
+.field label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.field textarea,
+.field input,
+.field select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 11px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  border-radius: 4px;
+  resize: vertical;
+  transition: border-color 0.15s;
+  line-height: 1.5;
+}
+
+.field textarea:focus,
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field select option { background: var(--surface2); }
+
+.wc {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.wc.over { color: var(--yellow); }
+
+.use-suggestion {
+  background: rgba(255,209,102,0.1);
+  border: 1px solid rgba(255,209,102,0.3);
+  color: var(--yellow);
+  padding: 7px 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+  width: 100%;
+}
+
+.use-suggestion:hover { background: rgba(255,209,102,0.18); }
+
+.save-btn {
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  color: #fff;
+  border: none;
+  padding: 11px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: opacity 0.2s, transform 0.15s;
+  width: 100%;
+}
+
+.save-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* ── DONE SCREEN ── */
+#done-screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 28px;
+  text-align: center;
+  padding: 40px;
+}
+
+#done-screen h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 80px;
+  letter-spacing: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#done-screen p {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.8;
+  max-width: 440px;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- UPLOAD -->
+<div id="upload-screen">
+  <div class="brand">
+    <h1>GSSDLE</h1>
+    <p>Card Review Tool — Full Audit Pass</p>
+  </div>
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <div class="upload-icon">📊</div>
+    <h3>DROP CSV TO BEGIN</h3>
+    <p>Load <code>game_cards_for_review.csv</code><br>Shows all cards with AI recommendations</p>
+  </div>
+  <input type="file" id="file-input" accept=".csv">
+</div>
+
+<!-- REVIEW -->
+<div id="review-screen">
+  <div class="topbar">
+    <div class="topbar-logo">GSSDLE</div>
+    <div class="topbar-progress">
+      <div class="progress-meta">
+        <span id="prog-label">0 / 0 reviewed</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0"></div></div>
+    </div>
+    <div class="topbar-chips">
+      <div class="chip chip-keep">✓ <span id="c-kept">0</span></div>
+      <div class="chip chip-edit">✎ <span id="c-edited">0</span></div>
+      <div class="chip chip-remove">✕ <span id="c-removed">0</span></div>
+      <div class="chip chip-pending">· <span id="c-pending">0</span></div>
+    </div>
+    <button class="export-btn" onclick="exportCSV()">EXPORT CSV</button>
+  </div>
+
+  <div class="filterbar" id="filterbar"></div>
+
+  <div class="main-layout">
+    <div class="card-area">
+      <div class="nav-row">
+        <button class="nav-btn" id="prev-btn" onclick="navigate(-1)" disabled>← PREV</button>
+        <div class="card-pos" id="card-pos"></div>
+        <button class="nav-btn" id="next-btn" onclick="navigate(1)">NEXT →</button>
+      </div>
+      <div id="card-container"></div>
+    </div>
+
+    <div class="action-panel">
+      <div>
+        <div class="panel-title">Status</div>
+        <div class="status-display s-pending" id="status-disp">PENDING</div>
+      </div>
+
+      <div>
+        <div class="panel-title">Decision</div>
+        <div class="action-btns">
+          <button class="abtn abtn-keep" id="abtn-keep" onclick="decide('kept')">
+            <span class="abtn-icon">✓</span> Approve as-is
+          </button>
+          <button class="abtn abtn-remove" id="abtn-remove" onclick="decide('removed')">
+            <span class="abtn-icon">✕</span> Remove card
+          </button>
+          <button class="abtn abtn-flip" id="abtn-flip" onclick="decide('flipped')">
+            <span class="abtn-icon">⇄</span> Apply flip & approve
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel-title">Edit & Approve</div>
+        <div class="edit-section">
+          <div class="field">
+            <label>Question Text</label>
+            <textarea id="e-question" rows="4"></textarea>
+            <div class="wc" id="e-wc"></div>
+          </div>
+          <button class="use-suggestion" id="use-suggestion-btn" onclick="useSuggestion()" style="display:none">
+            ↑ USE AI SUGGESTION
+          </button>
+          <div class="field">
+            <label>Stat Label</label>
+            <input type="text" id="e-statlabel">
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <select id="e-category">
+              <option>Politics</option>
+              <option>Crime & Law</option>
+              <option>Religion</option>
+              <option>Family</option>
+              <option>Work</option>
+              <option>Education</option>
+              <option>Health</option>
+              <option>Sex & Relationships</option>
+              <option>Race & Equality</option>
+              <option>Civil Liberties</option>
+              <option>Social Trust</option>
+            </select>
+          </div>
+          <button class="save-btn" onclick="saveEdit()">SAVE EDITS → APPROVE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DONE -->
+<div id="done-screen">
+  <h2>REVIEW COMPLETE</h2>
+  <p id="done-summary"></p>
+  <button class="export-btn" style="padding:12px 32px;font-size:13px" onclick="exportCSV()">
+    EXPORT FINAL CSV
+  </button>
+</div>
+
+<script>
+// ── CSV helpers ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.split('\n');
+  const headers = parseRow(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = parseRow(lines[i]);
+    const obj = {};
+    headers.forEach((h, idx) => obj[h.trim()] = (vals[idx] || '').trim());
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function parseRow(row) {
+  const res = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < row.length; i++) {
+    const c = row[i];
+    if (c === '"') { if (inQ && row[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
+    else if (c === ',' && !inQ) { res.push(cur); cur=''; }
+    else cur += c;
+  }
+  res.push(cur);
+  return res;
+}
+
+function toCSV(rows) {
+  if (!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const esc = v => { const s = String(v??''); return (s.includes(',')||s.includes('"')||s.includes('\n')) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+  return [headers.join(','), ...rows.map(r => headers.map(h => esc(r[h])).join(','))].join('\n');
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allRows = [];
+let cards   = [];       // deduplicated by variable
+let decisions = {};     // variable → {status, question, stat_label, category, flipped}
+let filtered  = [];     // current filtered+sorted view
+let currentIdx = 0;
+let activeFilter = 'all';
+
+const DECADES = ['1970s','1980s','1990s','2000s','2010s','2020s'];
+const SORT_ORDER = { remove: 0, flip: 1, reframe: 2, keep_as_is: 3 };
+
+// ── Load ──────────────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+const uz = document.getElementById('upload-zone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('drag-over'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('drag-over'));
+uz.addEventListener('drop', e => { e.preventDefault(); uz.classList.remove('drag-over'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    allRows = parseCSV(e.target.result);
+    // Deduplicate by variable
+    const seen = new Set();
+    cards = [];
+    for (const r of allRows) {
+      if (!seen.has(r.variable)) { seen.add(r.variable); cards.push(r); }
+    }
+    // Sort: removes first, then flips, then reframes, then keep
+    cards.sort((a,b) => {
+      const ao = SORT_ORDER[a.audit_action] ?? 3;
+      const bo = SORT_ORDER[b.audit_action] ?? 3;
+      if (ao !== bo) return ao - bo;
+      return (parseInt(b.confidence)||1) - (parseInt(a.confidence)||1);
+    });
+    // Init decisions
+    cards.forEach(c => {
+      decisions[c.variable] = {
+        status: 'pending',
+        question: c.question || '',
+        stat_label: c.stat_label || '',
+        category: c.category || 'Politics',
+        flipped: false,
+      };
+    });
+    buildFilters();
+    applyFilter('all');
+    document.getElementById('upload-screen').style.display = 'none';
+    document.getElementById('review-screen').style.display = 'block';
+  };
+  reader.readAsText(file);
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function buildFilters() {
+  const counts = { all: cards.length, remove: 0, flip: 0, reframe: 0, keep_as_is: 0 };
+  cards.forEach(c => { if (counts[c.audit_action] !== undefined) counts[c.audit_action]++; });
+
+  const labels = [
+    { key:'all',        label:`ALL (${counts.all})` },
+    { key:'remove',     label:`🔴 REMOVE (${counts.remove})` },
+    { key:'flip',       label:`🔵 FLIP (${counts.flip || cards.filter(c=>c.audit_flip_error==='True'||c.audit_flip_error===true).length})` },
+    { key:'reframe',    label:`🟡 REFRAME (${counts.reframe})` },
+    { key:'keep_as_is', label:`🟢 KEEP (${counts.keep_as_is})` },
+  ];
+
+  const fb = document.getElementById('filterbar');
+  fb.innerHTML = labels.map(l =>
+    `<button class="filter-btn ${l.key==='all'?'active':''}" onclick="applyFilter('${l.key}')" data-key="${l.key}">${l.label}</button>`
+  ).join('');
+}
+
+function applyFilter(key) {
+  activeFilter = key;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.key === key));
+  filtered = key === 'all' ? cards :
+             key === 'flip' ? cards.filter(c => c.audit_flip_error==='True'||c.audit_flip_error===true) :
+             cards.filter(c => c.audit_action === key);
+  currentIdx = 0;
+  renderCard(0);
+}
+
+// ── Navigate ──────────────────────────────────────────────────────────────────
+function navigate(dir) {
+  const n = currentIdx + dir;
+  if (n >= 0 && n < filtered.length) renderCard(n);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderCard(idx) {
+  currentIdx = idx;
+  const card = filtered[idx];
+  if (!card) return;
+  const dec  = decisions[card.variable];
+  const conf = parseInt(card.confidence) || 1;
+  const auditAction = card.audit_action || 'keep_as_is';
+  const isFlip = card.audit_flip_error === 'True' || card.audit_flip_error === true;
+  const hasReframe = card.audit_reframe && card.audit_reframe !== '' && card.audit_reframe !== 'nan';
+
+  document.getElementById('card-pos').textContent = `${idx+1} / ${filtered.length}`;
+  document.getElementById('prev-btn').disabled = idx === 0;
+  document.getElementById('next-btn').disabled = idx === filtered.length - 1;
+
+  // Banner
+  let bannerHTML = '';
+  if (isFlip) {
+    bannerHTML = `<div class="ai-banner banner-flip"><span class="banner-icon">⇄</span><span class="banner-label">FLIP DETECTED</span><span class="banner-detail">— ${card.audit_flip_note || ''}</span></div>`;
+  } else if (auditAction === 'remove') {
+    const prob = card.audit_problem ? ` · ${card.audit_problem}` : '';
+    bannerHTML = `<div class="ai-banner banner-remove"><span class="banner-icon">🔴</span><span class="banner-label">AI RECOMMENDS REMOVE${prob}</span><span class="banner-detail">— ${card.audit_problem_detail || ''}</span></div>`;
+  } else if (auditAction === 'reframe') {
+    const prob = card.audit_problem ? ` · ${card.audit_problem}` : '';
+    bannerHTML = `<div class="ai-banner banner-reframe"><span class="banner-icon">🟡</span><span class="banner-label">AI RECOMMENDS REFRAME${prob}</span><span class="banner-detail">— ${card.audit_problem_detail || ''}</span></div>`;
+  } else {
+    bannerHTML = `<div class="ai-banner banner-keep"><span class="banner-icon">🟢</span><span class="banner-label">AI: LOOKS GOOD</span></div>`;
+  }
+
+  // Decade pills
+  const decadePills = DECADES.map(d => {
+    const p = card[`pos_pct_${d}`];
+    const has = p && p !== '' && p !== 'None' && p !== 'nan';
+    return `<div class="dpill ${has?'has':''}">${d}${has ? `<span> ${(parseFloat(p)*100).toFixed(1)}%</span>` : ''}</div>`;
+  }).join('');
+
+  const overallPct = card.pos_pct ? (parseFloat(card.pos_pct)*100).toFixed(1) : '—';
+
+  // Reframe comparison
+  let reframeHTML = '';
+  if (hasReframe && auditAction === 'reframe') {
+    reframeHTML = `
+      <div class="reframe-box">
+        <div class="field-label">AI Suggested Reframe</div>
+        <div class="original-q">${card.question || '—'}</div>
+        <div class="suggested-q">→ ${card.audit_reframe}</div>
+      </div>`;
+  }
+
+  // Flip warning
+  let flipHTML = '';
+  if (isFlip) {
+    flipHTML = `<div class="flip-box">⇄ <strong>Flip Error:</strong> ${card.audit_flip_note || 'Positive label appears to be the negative answer'}</div>`;
+  }
+
+  // Review note
+  const hasNote = card.review_note && card.review_note !== '' && card.review_note !== 'nan';
+  const noteHTML = hasNote ? `<div class="raw-box" style="border-left:2px solid var(--yellow); color:var(--yellow)">⚠ ${card.review_note}</div>` : '';
+
+  document.getElementById('card-container').innerHTML = `
+    ${bannerHTML}
+    <div class="card ${dec.status !== 'pending' ? 'decided' : ''}">
+      <div class="card-top">
+        <div class="var-info">
+          <div class="var-code">${card.variable}</div>
+          <div class="var-desc">${card.description || ''}</div>
+        </div>
+        <div class="conf-badge conf-${conf}">CONF ${conf}</div>
+      </div>
+      <div class="card-body">
+        <div class="field-label">Question as shown</div>
+        <div class="question-display">${dec.question || card.question || '—'}</div>
+        ${reframeHTML}
+        ${flipHTML}
+        <div class="stat-bar">
+          <div class="stat-pct">${overallPct}%</div>
+          <div class="stat-info">
+            <div class="stat-label">${card.stat_label || '—'}</div>
+            <div class="stat-sub">
+              ${card.pos_label || ''} vs ${card.neg_label || ''}<br>
+              n = ${parseInt(card.n_valid||0).toLocaleString()} · ${card.year_min||''}–${card.year_max||''}
+            </div>
+          </div>
+        </div>
+        <div class="field-label" style="margin-bottom:8px">Decade breakdown</div>
+        <div class="decade-strip">${decadePills}</div>
+        <div class="meta-row">
+          <div class="meta-cell"><div class="field-label">Category</div><div class="meta-val">${dec.category || card.category || '—'}</div></div>
+          <div class="meta-cell"><div class="field-label">AI Action</div><div class="meta-val">${auditAction}</div></div>
+          <div class="meta-cell"><div class="field-label">Problem</div><div class="meta-val">${card.audit_problem || '—'}</div></div>
+        </div>
+        ${noteHTML}
+        <div class="raw-box">${card.description || '—'}</div>
+      </div>
+    </div>
+  `;
+
+  // Populate edit fields
+  document.getElementById('e-question').value  = dec.question || card.question || '';
+  document.getElementById('e-statlabel').value = dec.stat_label || card.stat_label || '';
+  const catSel = document.getElementById('e-category');
+  const catVal = dec.category || card.category || '';
+  for (let o of catSel.options) o.selected = o.value === catVal;
+
+  // Show/hide use-suggestion button
+  const suggBtn = document.getElementById('use-suggestion-btn');
+  suggBtn.style.display = hasReframe ? 'block' : 'none';
+
+  updateWC();
+  updateStatus(dec.status);
+  updateStats();
+}
+
+// ── Word count ────────────────────────────────────────────────────────────────
+document.getElementById('e-question').addEventListener('input', updateWC);
+function updateWC() {
+  const t = document.getElementById('e-question').value.trim();
+  const w = t ? t.split(/\s+/).length : 0;
+  const el = document.getElementById('e-wc');
+  el.textContent = `${w} words`;
+  el.className = 'wc' + (w > 18 ? ' over' : '');
+}
+
+// ── Use suggestion ────────────────────────────────────────────────────────────
+function useSuggestion() {
+  const card = filtered[currentIdx];
+  if (card && card.audit_reframe && card.audit_reframe !== 'nan') {
+    document.getElementById('e-question').value = card.audit_reframe;
+    updateWC();
+  }
+}
+
+// ── Decisions ─────────────────────────────────────────────────────────────────
+function decide(status) {
+  const card = filtered[currentIdx];
+  decisions[card.variable].status = status;
+  updateStatus(status);
+  updateStats();
+  setTimeout(() => {
+    if (currentIdx < filtered.length - 1) navigate(1);
+    else if (activeFilter !== 'all') { applyFilter('all'); }
+    else showDone();
+  }, 280);
+}
+
+function saveEdit() {
+  const card = filtered[currentIdx];
+  decisions[card.variable] = {
+    status: 'edited',
+    question:   document.getElementById('e-question').value.trim(),
+    stat_label: document.getElementById('e-statlabel').value.trim(),
+    category:   document.getElementById('e-category').value,
+    flipped:    false,
+  };
+  updateStatus('edited');
+  updateStats();
+  setTimeout(() => {
+    if (currentIdx < filtered.length - 1) navigate(1);
+    else if (activeFilter !== 'all') applyFilter('all');
+    else showDone();
+  }, 280);
+}
+
+function updateStatus(status) {
+  const map = {
+    pending:  ['s-pending', 'PENDING REVIEW'],
+    kept:     ['s-kept',    '✓ APPROVED'],
+    edited:   ['s-edited',  '✎ EDITED & APPROVED'],
+    removed:  ['s-removed', '✕ REMOVED'],
+    flipped:  ['s-flipped', '⇄ FLIPPED & APPROVED'],
+  };
+  const [cls, label] = map[status] || map.pending;
+  const el = document.getElementById('status-disp');
+  el.className = `status-display ${cls}`;
+  el.textContent = label;
+
+  // Highlight active button
+  document.getElementById('abtn-keep').classList.toggle('active',   status === 'kept');
+  document.getElementById('abtn-remove').classList.toggle('active', status === 'removed');
+  document.getElementById('abtn-flip').classList.toggle('active',   status === 'flipped');
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const counts = { kept:0, edited:0, removed:0, flipped:0, pending:0 };
+  Object.values(decisions).forEach(d => counts[d.status] = (counts[d.status]||0)+1);
+  document.getElementById('c-kept').textContent    = counts.kept + counts.edited + counts.flipped;
+  document.getElementById('c-edited').textContent  = counts.edited;
+  document.getElementById('c-removed').textContent = counts.removed;
+  document.getElementById('c-pending').textContent = counts.pending;
+  const total    = cards.length;
+  const reviewed = total - counts.pending;
+  document.getElementById('prog-label').textContent = `${reviewed} / ${total} reviewed`;
+  const pct = total ? Math.round(reviewed/total*100) : 0;
+  document.getElementById('prog-pct').textContent   = pct + '%';
+  document.getElementById('prog-fill').style.width  = pct + '%';
+}
+
+// ── Done ──────────────────────────────────────────────────────────────────────
+function showDone() {
+  const counts = { kept:0, edited:0, removed:0, flipped:0, pending:0 };
+  Object.values(decisions).forEach(d => counts[d.status] = (counts[d.status]||0)+1);
+  document.getElementById('review-screen').style.display = 'none';
+  document.getElementById('done-screen').style.display   = 'flex';
+  document.getElementById('done-summary').textContent =
+    `${counts.kept} approved · ${counts.edited} edited · ${counts.flipped} flipped · ${counts.removed} removed · ${counts.pending} pending`;
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const removedVars = new Set(Object.entries(decisions).filter(([,d])=>d.status==='removed').map(([v])=>v));
+
+  const out = allRows
+    .filter(r => !removedVars.has(r.variable))
+    .map(r => {
+      const dec = decisions[r.variable];
+      if (!dec) return { ...r, review_status: 'unreviewed' };
+      let row = { ...r, review_status: dec.status };
+      if (dec.status === 'edited') {
+        row.question   = dec.question;
+        row.stat_label = dec.stat_label;
+        row.category   = dec.category;
+      }
+      if (dec.status === 'flipped') {
+        // Apply flip: swap labels, invert pcts
+        const oldPos = row.pos_label;
+        row.pos_label = row.neg_label;
+        row.neg_label = oldPos;
+        if (row.pos_pct) row.pos_pct = String(1 - parseFloat(row.pos_pct));
+        DECADES.forEach(d => {
+          const col = `pos_pct_${d}`;
+          if (row[col] && row[col] !== '' && row[col] !== 'None' && row[col] !== 'nan')
+            row[col] = String(1 - parseFloat(row[col]));
+        });
+        row.review_status = 'flipped';
+      }
+      return row;
+    });
+
+  const csv  = toCSV(out);
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'game_cards_reviewed.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

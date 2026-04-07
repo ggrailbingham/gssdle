@@ -79,6 +79,7 @@ async function init() {
   try {
     const res = await fetch('data/cards.json');
     State.allCards = await res.json();
+    window.ALL_CARDS = State.allCards;
     setupTodayCards();
     renderGame();
   } catch(e) {
@@ -229,6 +230,7 @@ function renderTimeline() {
 
     return `
       <div class="scard placed-scard" style="left:${x}px;top:${cardTop}px">
+        <button class="info-btn" onclick="openInfoModal('${entry.card.id}')">ℹ</button>
         <div class="scard-decade">${entry.card.decade}</div>
         <div class="scard-question">${entry.card.question}</div>
         <div class="scard-pct">${entry.card.pct.toFixed(1)}%</div>
@@ -535,5 +537,74 @@ function startCountdown() {
 function showError(msg) {
   document.getElementById('game-root').innerHTML = `<div class="error-msg">${msg}</div>`;
 }
+
+// ── More Info Modal ───────────────────────────────────────────────────────────
+
+function openInfoModal(cardId) {
+  // Find the card data by id
+  const card = window.ALL_CARDS.find(c => c.id === cardId);
+  if (!card) return;
+
+  // Survey question text (verbatim GSS wording)
+  const qText = card.question_text_verbatim || card.question || '—';
+  document.getElementById('modal-question-text').textContent = qText;
+
+  // Response labels — parse value_labels, highlight chosen ones
+  const responseList = document.getElementById('modal-response-list');
+  responseList.innerHTML = '';
+  if (card.value_labels) {
+    const chosen = new Set((card.chosen_response_nums || []).map(Number));
+    const labels = parseModalValueLabels(card.value_labels);
+    labels.forEach(({ num, label }) => {
+      const isChosen = num !== null && chosen.has(num);
+      const el = document.createElement('div');
+      el.className = 'modal-response-item' + (isChosen ? ' chosen' : '');
+      el.textContent = num !== null ? `[${num}] ${label}` : label;
+      responseList.appendChild(el);
+    });
+  } else {
+    responseList.innerHTML = '<div class="modal-response-item">—</div>';
+  }
+
+  // Years asked in this decade
+  document.getElementById('modal-years').textContent = card.years_in_decade || '—';
+
+  // NORC link
+  const norcEl = document.getElementById('modal-norc-link');
+  if (card.norc_url) {
+    norcEl.href = card.norc_url;
+    norcEl.style.display = '';
+  } else {
+    norcEl.style.display = 'none';
+  }
+
+  document.getElementById('info-modal').classList.remove('hidden');
+}
+
+function closeModal(event) {
+  // Close if clicking the overlay itself (not the box inside it)
+  if (event.target.id === 'info-modal') {
+    document.getElementById('info-modal').classList.add('hidden');
+  }
+}
+
+// Parse "[1] yes / [2] no / [NA(i)] iap / ..." → [{num, label}] (non-NA only)
+// (Same logic as the review GUI — safe to duplicate here)
+function parseModalValueLabels(str) {
+  if (!str) return [];
+  return str.split('/')
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && !/^\[?NA/i.test(s) && !/^NA\s/i.test(s))
+    .map(s => {
+      const m = s.match(/^\[(\d+(?:\.\d+)?)\]\s*(.+)$/);
+      return m ? { num: parseFloat(m[1]), label: m[2].trim() } : { num: null, label: s };
+    });
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('info-modal')?.classList.add('hidden');
+});
+
 
 document.addEventListener('DOMContentLoaded', init);
