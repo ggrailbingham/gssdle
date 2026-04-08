@@ -79,7 +79,7 @@ async function init() {
   try {
     const res = await fetch('data/cards.json');
     State.allCards = await res.json();
-    window.ALL_CARDS = State.allCards;
+    window.ALL_CARDS = State.allCards;   // for modal lookups
     setupTodayCards();
     renderGame();
   } catch(e) {
@@ -109,7 +109,9 @@ function setupTodayCards() {
 }
 
 function pickRandom(cards, n, minGap) {
-  const shuffled = [...cards].sort(() => Math.random() - 0.5);
+  // Use daily seed so fallback days are also stable across refreshes
+  const rng     = seededRandom(getDailySeed());
+  const shuffled = [...cards].sort(() => rng() - 0.5);
   const picked   = [];
   for (const c of shuffled) {
     if (picked.length >= n) break;
@@ -165,7 +167,7 @@ function renderGame() {
       </div>
 
       <div class="timeline-scroll-wrap" id="timeline-scroll-wrap">
-        <div class="timeline-canvas" id="timeline-canvas">
+        <div class="timeline-canvas" id="timeline-canvas" style="height:${TRACK_Y + CARD_SIZE + STEM_H + 60}px">
           ${renderTimeline()}
         </div>
       </div>
@@ -175,6 +177,7 @@ function renderGame() {
           <div class="incoming-hint">↑ Drag card to its position on the scale above</div>
           <div class="incoming-card-wrap">
             <div class="scard incoming-card" id="incoming-card" draggable="true">
+              <button class="info-btn" onclick="openInfoModal('${current.id}');event.stopPropagation()">ℹ</button>
               <div class="scard-decade">${current.decade}</div>
               <div class="scard-question">${current.question}</div>
               ${State.attempts > 0
@@ -495,7 +498,7 @@ function viewTimeline() {
         <button class="back-btn" onclick="renderEndScreen()">← Results</button>
       </header>
       <div class="timeline-scroll-wrap" id="timeline-scroll-wrap" style="flex:1">
-        <div class="timeline-canvas" id="timeline-canvas">
+        <div class="timeline-canvas" id="timeline-canvas" style="height:${TRACK_Y + CARD_SIZE + STEM_H + 60}px">
           ${renderTimeline()}
         </div>
       </div>
@@ -538,27 +541,21 @@ function showError(msg) {
   document.getElementById('game-root').innerHTML = `<div class="error-msg">${msg}</div>`;
 }
 
-// ── More Info Modal ───────────────────────────────────────────────────────────
-
+// ── INFO MODAL ────────────────────────────────────────────────────────────────
 function openInfoModal(cardId) {
-  // Find the card data by id
-  const card = window.ALL_CARDS.find(c => c.id === cardId);
+  const card = (window.ALL_CARDS || []).find(c => c.id === cardId);
   if (!card) return;
 
-  // Survey question text (verbatim GSS wording)
-  const qText = card.question_text_verbatim || card.question || '—';
-  document.getElementById('modal-question-text').textContent = qText;
+  document.getElementById('modal-question-text').textContent =
+    card.question_text_verbatim || card.question || '—';
 
-  // Response labels — parse value_labels, highlight chosen ones
   const responseList = document.getElementById('modal-response-list');
   responseList.innerHTML = '';
   if (card.value_labels) {
     const chosen = new Set((card.chosen_response_nums || []).map(Number));
-    const labels = parseModalValueLabels(card.value_labels);
-    labels.forEach(({ num, label }) => {
-      const isChosen = num !== null && chosen.has(num);
+    parseModalValueLabels(card.value_labels).forEach(({ num, label }) => {
       const el = document.createElement('div');
-      el.className = 'modal-response-item' + (isChosen ? ' chosen' : '');
+      el.className = 'modal-response-item' + (num !== null && chosen.has(num) ? ' chosen' : '');
       el.textContent = num !== null ? `[${num}] ${label}` : label;
       responseList.appendChild(el);
     });
@@ -566,30 +563,21 @@ function openInfoModal(cardId) {
     responseList.innerHTML = '<div class="modal-response-item">—</div>';
   }
 
-  // Years asked in this decade
   document.getElementById('modal-years').textContent = card.years_in_decade || '—';
 
-  // NORC link
   const norcEl = document.getElementById('modal-norc-link');
-  if (card.norc_url) {
-    norcEl.href = card.norc_url;
-    norcEl.style.display = '';
-  } else {
-    norcEl.style.display = 'none';
-  }
+  if (card.norc_url) { norcEl.href = card.norc_url; norcEl.style.display = ''; }
+  else               { norcEl.style.display = 'none'; }
 
   document.getElementById('info-modal').classList.remove('hidden');
 }
 
 function closeModal(event) {
-  // Close if clicking the overlay itself (not the box inside it)
   if (event.target.id === 'info-modal') {
     document.getElementById('info-modal').classList.add('hidden');
   }
 }
 
-// Parse "[1] yes / [2] no / [NA(i)] iap / ..." → [{num, label}] (non-NA only)
-// (Same logic as the review GUI — safe to duplicate here)
 function parseModalValueLabels(str) {
   if (!str) return [];
   return str.split('/')
@@ -601,10 +589,8 @@ function parseModalValueLabels(str) {
     });
 }
 
-// Close modal on Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('info-modal')?.classList.add('hidden');
 });
-
 
 document.addEventListener('DOMContentLoaded', init);
